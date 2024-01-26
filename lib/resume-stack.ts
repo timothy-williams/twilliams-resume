@@ -6,6 +6,7 @@ import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as secretsManager from 'aws-sdk/clients/secretsmanager';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import { aws_cloudformation as cloudformation } from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 
 interface ResumeStackProps extends cdk.StackProps {
@@ -120,28 +121,42 @@ export class ResumeStack extends cdk.Stack {
         name: 'pk', 
         type: dynamodb.AttributeType.STRING 
       },
-      sortKey: {
-        name: 'VisitorCount',
-        type: dynamodb.AttributeType.NUMBER,
-      },
       billing: dynamodb.Billing.onDemand(),
     });
 
-    // Lambda function to increment visitor count by one
+    // Lambda function to create VisitorCount table item during initialization
+    const initLambda = new lambda.Function(this, 'InitLambda', {
+      runtime: lambda.Runtime.NODEJS_16_X,
+      handler: 'init.handler',
+      code: lambda.Code.fromAsset('./lambda'),
+      environment: {
+        TABLE_NAME: table.tableName,
+      },
+    });
+    table.grantReadWriteData(initLambda);
+
+    /**
+     * NEED TO INVOKE LAMBDA FUNCTION ON STACK CREATION
+     */
+
+    // Lambda function to increment VisitorCount by 1
     const incrementLambdaFunc = new lambda.Function(this, 'ResumeIncrementVisitorCount', {
       runtime: lambda.Runtime.NODEJS_16_X,
       handler: 'increment.handler',
-      code: lambda.Code.fromAsset('./lambda')
+      code: lambda.Code.fromAsset('./lambda'),
+      environment: {
+        TABLE_NAME: table.tableName,
+      },
     })
     table.grantReadWriteData(incrementLambdaFunc);
 
-    // Lambda function to retrieving visitor count after increment has occurred
+    // Lambda function to retrieve VisitorCount after increment has occurred
     const retrieveLambdaFunc = new lambda.Function(this, 'ResumeRetrieveVisitorCount', {
       runtime: lambda.Runtime.NODEJS_16_X,
       handler: 'retrieve.handler',
       code: lambda.Code.fromAsset('./lambda'),
       environment: {
-        DYNAMODB_TABLE_NAME: table.tableName,
+        TABLE_NAME: table.tableName,
       },
     });
     table.grantReadData(retrieveLambdaFunc);
