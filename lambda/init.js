@@ -1,39 +1,30 @@
-import { DynamoDB } from "aws-sdk";
+import { DynamoDBClient } from "aws-sdk/client-dynamodb";
+import { 
+  DynamoDBDocumentClient, GetCommand, PutCommand } from "aws-sdk/lib-dynamodb";
 
-export async function handler(event) {
-  const dynamoDB = new DynamoDB.DocumentClient();
-  const tableName = process.env.TABLE_NAME;
-  const pageId = "pk";
-  const visitorCount = 0;
+const client = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(client);
 
-  try {
-    // Will return null if VisitorCount does not exist
-    const existingItem = await dynamoDB
-      .get({
-        TableName: tableName,
-        Key: { PageID: pageId, VisitorCount: visitorCount },
-      })
-      .promise();
+export const handler = async () => {
+  // Will return null if VisitorCount does not exist
+  const command = new GetCommand({
+    TableName: "ResumeTable",
+    Key: { SiteStatistics: { VisitorCount: 0 } },
+  });
 
-    if (existingItem.Item) {
-      console.log(
-        "DynamoDB item VisitorCount already exists. No action needed."
-      );
-    } else {
-      // Initialize VisitorCount with a value of 0
-      await dynamoDB
-        .put({
-          TableName: tableName,
-          Item: { PageID: pageId, VisitorCount: visitorCount },
-        })
-        .promise();
+  if (command.Item) {
+    const response = await docClient.send(command);
+    console.log(response);
+    return response;
+  } else {
+    // Initialize VisitorCount with a value of 0
+    new PutCommand({
+      TableName: "ResumeTable",
+      Item: { VisitorCount: 0 },
+    });
 
-      console.log("DynamoDB item VisitorCount created successfully.");
-    }
-
-    return { statusCode: 200, body: "Success" };
-  } catch (error) {
-    console.error("Error:", error);
-    return { statusCode: 500, body: "Error" };
+    const response = await docClient.send(command);
+    console.log(response);
+    return response;
   }
-}
+};

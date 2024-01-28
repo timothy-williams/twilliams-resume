@@ -10,8 +10,6 @@ import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 
-
-
 // Function to retrieve ACM certificate ARN
 interface ResumeStackProps extends cdk.StackProps {
   ACMSecret: string;
@@ -149,7 +147,6 @@ export class ResumeStack extends cdk.Stack {
     const eventRule = new events.Rule(this, "InitEventRule", {
       eventPattern: {
         source: ["aws.cloudformation"],
-        detailType: ["AWS API Call via CloudWatch"],
         detail: {
           eventSource: ["cloudformation.amazonaws.com"],
           eventName: ["CreateStack"],
