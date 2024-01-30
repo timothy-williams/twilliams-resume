@@ -1,50 +1,39 @@
 import * as cdk from "aws-cdk-lib";
-import { RemovalPolicy } from "aws-cdk-lib";
-import * as s3 from "aws-cdk-lib/aws-s3";
-import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
+import * as route53 from "aws-cdk-lib/aws-route53";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
-import * as secretsManager from "aws-sdk/clients/secretsmanager";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import { RemovalPolicy } from "aws-cdk-lib";
+import * as iam from "aws-cdk-lib/aws-iam";
+import * as sm from "aws-cdk-lib/aws-secretsmanager";
+import * as acm from "aws-cdk-lib/aws-certificatemanager";
+import * as cloudfront_origins from "aws-cdk-lib/aws-cloudfront-origins";
+import * as targets from "aws-cdk-lib/aws-route53-targets";
+import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
-import * as events from "aws-cdk-lib/aws-events";
-import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 
-// Function to retrieve ACM certificate ARN
-interface ResumeStackProps extends cdk.StackProps {
-  ACMSecret: string;
-}
-
-async function retrieveCertificateArn(
-  secretName: string
-): Promise<string | undefined> {
-  const SMClient = new secretsManager();
-
-  try {
-    const ACMSecretValue = await SMClient.getSecretValue({
-      SecretId: secretName,
-    }).promise();
-
-    if (ACMSecretValue.SecretString) {
-      const secretObject = JSON.parse(ACMSecretValue.SecretString);
-      const certificateArn = secretObject.acmCertificateArn;
-
-      return certificateArn;
-    } else {
-      return undefined;
-    }
-  } catch (error) {
-    console.error("Error retrieving secret:", error);
-    return undefined;
-  }
-}
-
 export class ResumeStack extends cdk.Stack {
-  constructor(scope: cdk.App, id: string, props: ResumeStackProps) {
+  constructor(scope: cdk.App, id: string, props: cdk.StackProps) {
     super(scope, id, props);
 
+    const domainName = "twilliamsresume.com";
+    const subDomain = "www";
+    const siteDomain = subDomain + "." + domainName;
+    const zone = route53.HostedZone.fromLookup(this, "Zone", {
+      domainName: domainName,
+    });
+    const cloudfrontOAI = new cloudfront.OriginAccessIdentity(
+      this,
+      "cloudfront-OAI"
+    );
+
+    new cdk.CfnOutput(this, "Site", { value: "https://" + siteDomain });
+
     // S3 bucket
-    const resumeBucket = new s3.Bucket(this, "twilliamsresume.com", {
+    const resumeBucket = new s3.Bucket(this, "ResumeBucket", {
+      bucketName: siteDomain,
+      publicReadAccess: false,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       enforceSSL: true,
@@ -54,156 +43,117 @@ export class ResumeStack extends cdk.Stack {
       websiteErrorDocument: "error.html",
     });
 
+    // Grant access to CloudFront
+    resumeBucket.addToResourcePolicy(
+      new iam.PolicyStatement({
+        actions: ["s3:GetObject"],
+        resources: [resumeBucket.arnForObjects("*")],
+        principals: [
+          new iam.CanonicalUserPrincipal(
+            cloudfrontOAI.cloudFrontOriginAccessIdentityS3CanonicalUserId
+          ),
+        ],
+      })
+    );
+
+    new cdk.CfnOutput(this, "Bucket", { value: resumeBucket.bucketName });
+
+    // Import secret that holds certificate ARN
+    const secret = sm.Secret.fromSecretNameV2(
+      this,
+      "ImportedSecret",
+      "Resume-ACM-Certificate-ARN"
+    );
+
+    // Import existing TLS certificate
+    const certificate = acm.Certificate.fromCertificateArn(
+      this,
+      "ImportedCertificate",
+      secret.secretValue.toString()
+    );
+
+    new cdk.CfnOutput(this, "Certificate", {
+      value: certificate.certificateArn,
+    });
+
+    // CloudFront distribution
+    const distribution = new cloudfront.Distribution(
+      this,
+      "ResumeDistribution",
+      {
+        certificate: certificate,
+        defaultRootObject: "index.html",
+        domainNames: [siteDomain],
+        minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021,
+        errorResponses: [
+          {
+            httpStatus: 403,
+            responseHttpStatus: 403,
+            responsePagePath: "/error.html",
+            ttl: cdk.Duration.minutes(30),
+          },
+        ],
+        defaultBehavior: {
+          origin: new cloudfront_origins.S3Origin(resumeBucket, {
+            originAccessIdentity: cloudfrontOAI,
+          }),
+          compress: true,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+          viewerProtocolPolicy:
+            cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        },
+      }
+    );
+
+    new cdk.CfnOutput(this, "DistributionId", {
+      value: distribution.distributionId,
+    });
+
+    // Route53 alias record for the CloudFront distribution
+    new route53.ARecord(this, "SiteAliasRecord", {
+      recordName: siteDomain,
+      target: route53.RecordTarget.fromAlias(
+        new targets.CloudFrontTarget(distribution)
+      ),
+      zone,
+    });
+
     // S3 bucket deployments with static assets
     new s3deploy.BucketDeployment(this, "DeployResumeBucket", {
       sources: [s3deploy.Source.asset("./assets")],
       destinationBucket: resumeBucket,
-    });
-
-    // Retrieve certificate ARN
-    let certificate: string | undefined;
-
-    retrieveCertificateArn(props.ACMSecret)
-      .then((certificateArn) => {
-        certificate = certificateArn;
-        console.log("Certificate ARN:", certificate);
-      })
-      .catch((error) => {
-        console.error("Error retrieving certificate:", error);
-      });
-
-    // Cloudfront distribution
-    const distribution = new cloudfront.CloudFrontWebDistribution(
-      this,
-      "ResumeDistribution",
-      {
-        originConfigs: [
-          {
-            s3OriginSource: {
-              s3BucketSource: resumeBucket,
-            },
-            behaviors: [
-              { isDefaultBehavior: true },
-              {
-                pathPattern: "www/*",
-                defaultTtl: cdk.Duration.seconds(0),
-                maxTtl: cdk.Duration.seconds(0),
-                minTtl: cdk.Duration.seconds(0),
-                viewerProtocolPolicy:
-                  cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-              },
-            ],
-          },
-        ],
-        viewerCertificate: {
-          aliases: ["twilliamsresume.com", "www.twilliamsresume.com"],
-          props: {
-            acmCertificateArn: certificate,
-          },
-        },
-        errorConfigurations: [
-          {
-            errorCode: 403,
-            responseCode: 404,
-            responsePagePath: "/error.html",
-            errorCachingMinTtl: 0,
-          },
-          {
-            errorCode: 404,
-            responseCode: 404,
-            responsePagePath: "/error.html",
-            errorCachingMinTtl: 0,
-          },
-        ],
-      }
-    );
-
-    new cdk.CfnOutput(this, "ResumeDomainName", {
-      value: distribution.distributionDomainName,
-      description: "CloudFront distribution domain name",
+      distribution,
+      distributionPaths: ["/*"],
     });
 
     // Create DynamoDB table that stores visitor count
     const table = new dynamodb.TableV2(this, "ResumeTable", {
       partitionKey: {
-        name: "SiteStatistics",
+        name: "SiteData",
         type: dynamodb.AttributeType.STRING,
       },
       billing: dynamodb.Billing.onDemand(),
     });
 
-    // Lambda function to create VisitorCount table item during initialization
-    const initLambda = new lambda.Function(this, "InitLambda", {
-      runtime: lambda.Runtime.NODEJS_20_X,
-      handler: "init.handler",
-      code: lambda.Code.fromAsset("./lambda"),
-      environment: {
-        TABLE_NAME: table.tableName,
-      },
-    });
-    table.grantReadWriteData(initLambda);
-
-    // Event rule that triggers initLambda on stack creation
-    const eventRule = new events.Rule(this, "InitEventRule", {
-      eventPattern: {
-        source: ["aws.cloudformation"],
-        detail: {
-          eventSource: ["cloudformation.amazonaws.com"],
-          eventName: ["CreateStack"],
-        },
-        resources: [
-          `arn:aws:cloudformation:${this.region}:${this.account}:${this.stackName}/*`,
-        ],
-      },
-    });
-    eventRule.addTarget(new targets.LambdaFunction(initLambda));
-
-    // Lambda function to increment VisitorCount by 1
-    const incrementLambdaFunc = new lambda.Function(
+    // Lambda function to increment VisitorCount by 1 and return new value
+    const visitorCounter = new lambda.Function(
       this,
       "ResumeIncrementVisitorCount",
       {
         runtime: lambda.Runtime.NODEJS_20_X,
-        handler: "increment.handler",
+        handler: "visitorcounter.handler",
         code: lambda.Code.fromAsset("./lambda"),
         environment: {
           TABLE_NAME: table.tableName,
         },
       }
     );
-    table.grantReadWriteData(incrementLambdaFunc);
+    table.grantReadWriteData(visitorCounter);
 
-    // Lambda function to retrieve VisitorCount after increment has occurred
-    const retrieveLambdaFunc = new lambda.Function(
-      this,
-      "ResumeRetrieveVisitorCount",
-      {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        handler: "retrieve.handler",
-        code: lambda.Code.fromAsset("./lambda"),
-        environment: {
-          TABLE_NAME: table.tableName,
-        },
-      }
-    );
-    table.grantReadData(retrieveLambdaFunc);
-
-    // API Gateway
-    const api = new apigateway.RestApi(this, "ResumeVistorCounterAPI");
-
-    // Connect API to Lambda increment function
-    const incrementIntegration = new apigateway.LambdaIntegration(
-      incrementLambdaFunc
-    );
-    const incrementResource = api.root.addResource("increment");
-    incrementResource.addMethod("POST", incrementIntegration);
-
-    // Connect API to Lambda retrieve function
-    const retrieveIntegration = new apigateway.LambdaIntegration(
-      retrieveLambdaFunc
-    );
-    const retrieveResource = api.root.addResource("retrieve");
-    retrieveResource.addMethod("GET", retrieveIntegration);
+    // Rest API with visitorCounter Lambda integration
+    const api = new apigateway.LambdaRestApi(this, "ResumeVistorCounterAPI", {
+      handler: visitorCounter,
+    });
 
     new cdk.CfnOutput(this, "DynamoDBTableName", {
       value: table.tableName,
@@ -212,8 +162,7 @@ export class ResumeStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, "APIGatewayURL", {
       value: api.url,
-      description:
-        "API Gateway URL for accessing increment and retrieve endpoints",
+      description: "API Gateway URL for visitor counter",
     });
   }
 }
