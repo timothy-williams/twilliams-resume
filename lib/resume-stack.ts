@@ -69,7 +69,7 @@ export class ResumeStack extends cdk.Stack {
     const certificate = acm.Certificate.fromCertificateArn(
       this,
       "ImportedCertificate",
-      secret.secretValue.toString()
+      secret.secretValue.unsafeUnwrap().toString()
     );
 
     new cdk.CfnOutput(this, "Certificate", {
