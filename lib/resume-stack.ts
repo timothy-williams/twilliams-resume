@@ -61,7 +61,7 @@ export class ResumeStack extends cdk.Stack {
     const certificate = acm.Certificate.fromCertificateArn(
       this,
       "ImportedCertificate",
-      "arn:aws:secretsmanager:us-east-1:247158676068:secret:Resume-ACM-Certificate-ARN-13e2nT"
+      "arn:aws:acm:us-east-1:247158676068:certificate/a50f357d-ad00-40b4-b09d-cf86f5ee0868"
     );
 
     new cdk.CfnOutput(this, "Certificate", {
