@@ -1,5 +1,5 @@
 fetch(
-  "https://4exd22esdg.execute-api.us-east-1.amazonaws.com/visitorcount-api-post"
+  "placeholder url"
 )
   .then((response) => {
     if (response.ok) {
