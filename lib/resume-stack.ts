@@ -4,7 +4,6 @@ import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { RemovalPolicy } from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
-import * as sm from "aws-cdk-lib/aws-secretsmanager";
 import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import * as cloudfront_origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as targets from "aws-cdk-lib/aws-route53-targets";
@@ -58,18 +57,11 @@ export class ResumeStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, "Bucket", { value: resumeBucket.bucketName });
 
-    // Import secret that holds certificate ARN
-    const secret = sm.Secret.fromSecretNameV2(
-      this,
-      "ImportedSecret",
-      "Resume-ACM-Certificate-ARN"
-    );
-
     // Import existing TLS certificate
     const certificate = acm.Certificate.fromCertificateArn(
       this,
       "ImportedCertificate",
-      secret.secretValue.unsafeUnwrap().toString()
+      "arn:aws:secretsmanager:us-east-1:247158676068:secret:Resume-ACM-Certificate-ARN-13e2nT"
     );
 
     new cdk.CfnOutput(this, "Certificate", {
