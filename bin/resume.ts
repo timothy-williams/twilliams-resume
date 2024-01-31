@@ -6,7 +6,7 @@ import { ResumeStack } from "../lib/resume-stack";
 const app = new cdk.App();
 new ResumeStack(app, "ResumeStack", {
   env: {
-    account: app.node.tryGetContext('accountId'),
+    account: '247158676068',
     region: 'us-east-1',
   }, // need to make sure these variables are configured properly
 });
