@@ -37,7 +37,7 @@ export class ResumeStack extends cdk.Stack {
       encryption: s3.BucketEncryption.S3_MANAGED,
       enforceSSL: true,
       versioned: true,
-      removalPolicy: RemovalPolicy.RETAIN,
+      removalPolicy: RemovalPolicy.DESTROY,
       websiteIndexDocument: "index.html",
       websiteErrorDocument: "error.html",
     });
