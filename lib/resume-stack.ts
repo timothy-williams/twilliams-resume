@@ -33,14 +33,13 @@ export class ResumeStack extends cdk.Stack {
     const resumeBucket = new s3.Bucket(this, "ResumeBucket", {
       bucketName: siteDomain,
       publicReadAccess: true,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       enforceSSL: true,
       versioned: true,
       removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
       websiteIndexDocument: "index.html",
       websiteErrorDocument: "error.html",
-      autoDeleteObjects: true,
     });
 
     // Grant access to CloudFront
