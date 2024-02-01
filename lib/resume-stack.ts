@@ -32,7 +32,7 @@ export class ResumeStack extends cdk.Stack {
     // S3 bucket
     const resumeBucket = new s3.Bucket(this, "ResumeBucket", {
       bucketName: siteDomain,
-      publicReadAccess: false,
+      publicReadAccess: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       enforceSSL: true,
