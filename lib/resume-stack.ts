@@ -55,6 +55,17 @@ export class ResumeStack extends cdk.Stack {
       })
     );
 
+    // Grant public read access
+    resumeBucket.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: "PublicReadGetObject",
+        actions: ["s3:GetObject"],
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.StarPrincipal()],
+        resources: [resumeBucket.arnForObjects("*")]
+      })
+    )
+
     new cdk.CfnOutput(this, "Bucket", { value: resumeBucket.bucketName });
 
     // Import existing TLS certificate
