@@ -32,14 +32,15 @@ export class ResumeStack extends cdk.Stack {
     // S3 bucket
     const resumeBucket = new s3.Bucket(this, "ResumeBucket", {
       bucketName: siteDomain,
-      publicReadAccess: true,
+      publicReadAccess: false,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       enforceSSL: true,
       versioned: true,
       removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
       websiteIndexDocument: "index.html",
       websiteErrorDocument: "error.html",
+      autoDeleteObjects: true,
     });
 
     // Grant access to CloudFront
@@ -54,17 +55,6 @@ export class ResumeStack extends cdk.Stack {
         ],
       })
     );
-
-    // Grant public read access
-    resumeBucket.addToResourcePolicy(
-      new iam.PolicyStatement({
-        sid: "PublicReadGetObject",
-        actions: ["s3:GetObject"],
-        effect: iam.Effect.ALLOW,
-        principals: [new iam.StarPrincipal()],
-        resources: [resumeBucket.arnForObjects("*")]
-      })
-    )
 
     new cdk.CfnOutput(this, "Bucket", { value: resumeBucket.bucketName });
 
