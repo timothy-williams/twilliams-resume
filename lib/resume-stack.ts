@@ -40,6 +40,7 @@ export class ResumeStack extends cdk.Stack {
       removalPolicy: RemovalPolicy.DESTROY,
       websiteIndexDocument: "index.html",
       websiteErrorDocument: "error.html",
+      autoDeleteObjects: true,
     });
 
     // Grant access to CloudFront
