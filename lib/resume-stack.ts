@@ -38,8 +38,6 @@ export class ResumeStack extends cdk.Stack {
       enforceSSL: true,
       versioned: true,
       removalPolicy: RemovalPolicy.DESTROY,
-      websiteIndexDocument: "index.html",
-      websiteErrorDocument: "error.html",
       autoDeleteObjects: true,
     });
 
