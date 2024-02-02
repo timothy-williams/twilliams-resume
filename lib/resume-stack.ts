@@ -144,6 +144,9 @@ export class ResumeStack extends cdk.Stack {
     // Rest API with visitorCounter Lambda integration
     const api = new apigateway.LambdaRestApi(this, "ResumeVistorCounterAPI", {
       handler: visitorCounter,
+      defaultCorsPreflightOptions: {
+        allowOrigins: ["*"],
+      },
     });
 
     new cdk.CfnOutput(this, "DynamoDBTableName", {
