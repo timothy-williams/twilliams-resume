@@ -1,5 +1,5 @@
 fetch(
-  "placeholder url"
+  "https://qlfbi8bsz9.execute-api.us-east-1.amazonaws.com/prod"
 )
   .then((response) => {
     if (response.ok) {
