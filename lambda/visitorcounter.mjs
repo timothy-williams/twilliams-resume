@@ -7,13 +7,9 @@ const docClient = DynamoDBDocumentClient.from(client);
 export const handler = async () => {
   const command = new UpdateCommand({
     TableName: process.env.TABLE_NAME,
-    Key: {
-      SiteData: "VisitorCount",
-    },
+    Key: { SiteData: "VisitorCount" },
     UpdateExpression: "ADD Hits :incr",
-    ExpressionAttributeValues: {
-      ":incr": { "N": 1 },
-    },
+    ExpressionAttributeValues: { ":incr": 1 },
     ReturnValues: "ALL_NEW",
   });
 
