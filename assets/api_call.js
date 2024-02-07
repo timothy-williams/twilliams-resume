@@ -1,10 +1,4 @@
-fetch("https://qlfbi8bsz9.execute-api.us-east-1.amazonaws.com/prod", {
-  method: "GET",
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  // mode: "no-cors",
-})
+fetch("https://qlfbi8bsz9.execute-api.us-east-1.amazonaws.com/prod")
   .then((response) => {
     if (response.ok) {
       console.log("Fetch successful.");
