@@ -1,4 +1,4 @@
-import { DynamoDB } from "@aws-sdk";
+import { DynamoDB } from "aws-sdk";
 
 export const handler = async (event, context) => {
   const dynamo = new DynamoDB();
