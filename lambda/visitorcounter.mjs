@@ -1,27 +1,23 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
-export const handler = async (event, context) => {
-  const dynamo = new DynamoDBClient();
-  console.log("Request:", JSON.stringify(event, undefined, 2));
+const client = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(client);
 
-  // Increment VisitorCount by 1
-  const eventData = await dynamo
-    .UpdateItemCommand({
-      TableName: process.env.TABLE_NAME,
-      Key: { path: { N: "VisitorCount" } },
-      UpdateExpression: "ADD Hits :incr",
-      ExpressionAttributeValues: { ":incr": { N: "1" } },
-      ReturnValues: "UPDATED_NEW",
-    })
-    .promise();
+export const handler = async () => {
+  const command = new UpdateCommand({
+    TableName: process.env.TABLE_NAME,
+    Key: {
+      SiteData: "VisitorCount",
+    },
+    UpdateExpression: "ADD Hits :incr",
+    ExpressionAttributeValues: {
+      ":incr": 1,
+    },
+    ReturnValues: "ALL_NEW",
+  });
 
-  console.log("Event data:", JSON.stringify(eventData, undefined, 2));
-
-  // Return the updated value back to the site
-  const newCount = eventData.Attributes.Hits.N;
-  return {
-    statusCode: 200,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ newCount }),
-  };
-}
+  const response = await docClient.send(command.Attributes.Hits.N);
+  console.log(response);
+  return response;
+};
