@@ -145,7 +145,7 @@ export class ResumeStack extends cdk.Stack {
     const api = new apigateway.LambdaRestApi(this, "ResumeVistorCounterAPI", {
       handler: visitorCounter,
       defaultCorsPreflightOptions: {
-        allowOrigins: ["*"],
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
       },
     });
 
