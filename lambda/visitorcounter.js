@@ -1,6 +1,6 @@
-const { DynamoDB } = require("aws-sdk");
+import { DynamoDB } from "@aws-sdk";
 
-exports.handler = async function (event) {
+export async function handler(event) {
   const dynamo = new DynamoDB();
   console.log("Request:", JSON.stringify(event, undefined, 2));
 
@@ -24,4 +24,4 @@ exports.handler = async function (event) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ newCount }),
   };
-};
+}
