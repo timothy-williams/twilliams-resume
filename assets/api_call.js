@@ -1,4 +1,4 @@
-fetch("https://qlfbi8bsz9.execute-api.us-east-1.amazonaws.com/", {
+fetch("https://qlfbi8bsz9.execute-api.us-east-1.amazonaws.com/prod", {
   method: "GET",
   headers: {
     'Content-Type': 'application/json',
