@@ -12,12 +12,12 @@ export const handler = async () => {
     },
     UpdateExpression: "ADD Hits :incr",
     ExpressionAttributeValues: {
-      ":incr": 1,
+      ":incr": { N: "1" },
     },
     ReturnValues: "ALL_NEW",
   });
 
-  const response = await docClient.send(command.Attributes.Hits.N);
+  const response = await docClient.send(command);
   console.log(response);
   return response;
 };
