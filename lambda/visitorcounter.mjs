@@ -1,12 +1,12 @@
-import { DynamoDB } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
 export const handler = async (event, context) => {
-  const dynamo = new DynamoDB();
+  const dynamo = new DynamoDBClient();
   console.log("Request:", JSON.stringify(event, undefined, 2));
 
   // Increment VisitorCount by 1
   const eventData = await dynamo
-    .updateItem({
+    .UpdateItemCommand({
       TableName: process.env.TABLE_NAME,
       Key: { path: { N: "VisitorCount" } },
       UpdateExpression: "ADD Hits :incr",
