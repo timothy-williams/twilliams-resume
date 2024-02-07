@@ -12,7 +12,7 @@ export const handler = async () => {
     },
     UpdateExpression: "ADD Hits :incr",
     ExpressionAttributeValues: {
-      ":incr": { "N": "1" },
+      ":incr": { "N": 1 },
     },
     ReturnValues: "ALL_NEW",
   });
