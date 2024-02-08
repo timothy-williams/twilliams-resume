@@ -15,5 +15,17 @@ export const handler = async () => {
 
   const response = await docClient.send(command);
   console.log(response);
-  return response;
+
+  const headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Methods": "OPTIONS,GET,PUT,POST,DELETE",
+  };
+
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify(response),
+  };
 };
