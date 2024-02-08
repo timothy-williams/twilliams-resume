@@ -9,5 +9,5 @@ fetch("https://qlfbi8bsz9.execute-api.us-east-1.amazonaws.com/prod")
   })
   .then((data) => {
     console.log(data);
-    document.getElementById("count").innerHTML = data;
+    document.getElementById("count").innerHTML = data.Attributes.Hits;
   });
