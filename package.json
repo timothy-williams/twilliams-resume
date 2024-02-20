@@ -25,6 +25,7 @@
     "@aws-sdk/lib-dynamodb": "^3.509.0",
     "aws-cdk-lib": "2.124.0",
     "constructs": "^10.3.0",
+    "html2pdf.js": "^0.10.1",
     "source-map-support": "^0.5.21"
   }
 }
