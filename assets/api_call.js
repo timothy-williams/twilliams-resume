@@ -12,7 +12,9 @@ fetch("https://qlfbi8bsz9.execute-api.us-east-1.amazonaws.com/prod")
     document.getElementById("count").innerHTML = data.Attributes.Hits;
   });
 
-function saveHTMLasPDF() {
-  var element = document.getElementById("pdf");
-  html2pdf(element);
-}
+/*function saveHTMLasPDF() {
+  var element = document.getElementById("doc2");
+  html2pdf(element).set({
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  });
+}*/
