@@ -11,3 +11,8 @@ fetch("https://qlfbi8bsz9.execute-api.us-east-1.amazonaws.com/prod")
     console.log(data);
     document.getElementById("count").innerHTML = data.Attributes.Hits;
   });
+
+function saveHTMLasPDF() {
+  var element = document.getElementById("pdf");
+  html2pdf(element);
+}

@@ -154,7 +154,7 @@ p.enlarge span {
 
 /* //-- section styles -- */
 
-a#pdf {
+button#pdf {
     display: block;
     float: left;
     background: #666;
